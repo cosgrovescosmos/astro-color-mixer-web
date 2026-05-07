@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Color Mixer Technical Appendix</title>
+  <style>
+    body { margin: 0; background: #101419; color: #e8eef6; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 44px 24px 72px; }
+    h1, h2 { color: #f8fbfe; }
+    section { background: #151c24; border: 1px solid #283344; border-radius: 14px; padding: 18px 22px; margin: 16px 0; }
+    pre { background: #0a1016; color: #f4f7fb; padding: 16px; border-radius: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Astro Color Mixer Technical Appendix</h1>
+
+    <section><h2>Introduction</h2><p>This appendix summarizes the practical processing model used by Astro Color Mixer Web for nonlinear RGB astrophotography refinement.</p></section>
+    <section><h2>Nonlinear RGB assumptions</h2><p>The app assumes nonlinear RGB input, normalized floating-point working values, downsampled preview interaction, and full-resolution save rendering.</p></section>
+    <section><h2>Luminance formula</h2><pre>Y = 0.2126 R + 0.7152 G + 0.0722 B</pre><p>This luminance is used for Range Mask, diagnostics, neutral luminance shaping, and protection terms.</p></section>
+    <section><h2>Hue and saturation selection</h2><p>Hue is treated as circular. Low saturation makes hue unreliable, which is why weak-color pixels use a separate neutral luminance path.</p></section>
+    <section><h2>Color-band centers</h2><pre>red 0°
+orange 30°
+yellow 60°
+green 120°
+cyan 180°
+blue 240°
+purple 275°
+magenta 315°</pre></section>
+    <section><h2>Width and Feather</h2><p>Width defines the selected hue span and Feather defines the soft falloff into neighboring hues.</p><pre>distance = circularHueDistance(hue, center)
+mask = 1 - smoothstep(innerWidth, outerWidth, distance)</pre></section>
+    <section><h2>Range Mask formula</h2><pre>leftRamp = smoothstep(low - feather, low, Y)
+rightRamp = 1 - smoothstep(high, high + feather, Y)
+rangeMask = clamp01(leftRamp * rightRamp)</pre></section>
+    <section><h2>Neutral / Low-Saturation model</h2><pre>neutralMask = 1 - smoothstep(satStart, satFull, saturation)</pre><p>This provides a luminance-focused path for low-saturation pixels where hue is unreliable.</p></section>
+    <section><h2>Chroma-vector adjustment concept</h2><p>Conceptually, the app separates a luminance-like component from chroma, scales saturation, rotates hue, adjusts luminance, then recombines and clamps to valid RGB.</p></section>
+    <section><h2>Refinement pass sequencing</h2><pre>working = original
+for each enabled pass:
+    working = applyPass(working, pass)</pre></section>
+    <section><h2>Preview/downsample behavior</h2><p>Preview, histogram, polar plot, and probe are tied to downsampled working data for responsiveness. Saved output renders from the full-resolution image.</p></section>
+    <section><h2>TIFF/browser considerations</h2><p>TIFF support depends on the included browser-side TIFF I/O code and the available memory of the local browser session. Large images can be memory-intensive.</p></section>
+    <section><h2>Limitations</h2><p>The app is not for linear calibration, extreme changes can artifact, hue is unreliable in neutral regions, and browser memory limits can affect very large images.</p></section>
+  </main>
+</body>
+</html>

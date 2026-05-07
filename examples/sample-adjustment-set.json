@@ -1,0 +1,28 @@
+{
+  "version": "stack-12",
+  "imageType": "stars",
+  "globalStrength": 1,
+  "sensitivity": "Normal",
+  "rangeMask": {
+    "enabled": false,
+    "low": 0,
+    "high": 1,
+    "feather": 0.1,
+    "preset": "All"
+  },
+  "neutralLuminance": {
+    "luminance": 0,
+    "satStart": 0.04,
+    "satFull": 0.16
+  },
+  "bands": {
+    "red": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "orange": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "yellow": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "green": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "cyan": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "blue": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "purple": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 },
+    "magenta": { "hueShift": 0, "saturation": 0, "luminance": 0, "width": 45, "feather": 0.75 }
+  }
+}

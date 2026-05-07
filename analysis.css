@@ -1,0 +1,250 @@
+/* Astro Color Mixer Web v0.9.3-beta */
+
+.analysis-layout-v2 {
+  display: grid !important;
+  gap: 0.5rem !important;
+  align-items: start !important;
+  align-content: start !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0.18rem 0.22rem !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16%),
+    var(--panel) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.analysis-layout-v2 .analysis-card {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  align-self: start !important;
+  overflow: hidden !important;
+}
+
+.analysis-layout-v2 .analysis-card-header,
+.analysis-layout-v2 .pass-manager-header {
+  margin-bottom: 0 !important;
+  gap: 0.14rem !important;
+}
+
+.analysis-layout-v2 .analysis-card-body,
+.analysis-layout-v2 .histogram-layout,
+.analysis-layout-v2 .pass-manager-body,
+.analysis-layout-v2 .polar-layout {
+  min-height: 0 !important;
+  height: auto !important;
+  gap: 0.06rem !important;
+}
+
+.analysis-layout-v2 #analysis-diagnostics-grid {
+  display: none !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"] .analysis-layout-v2,
+body[data-app-mode="standard"] .analysis-layout-v2 {
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr) !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"] .analysis-layout-v2 .pass-manager-card,
+body[data-app-mode="standard"] .analysis-layout-v2 .pass-manager-card {
+  display: none !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"] .analysis-layout-v2 .histogram-card,
+body[data-app-mode="standard"] .analysis-layout-v2 .histogram-card {
+  grid-column: 1 !important;
+  height: 204px !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"] .analysis-layout-v2 .polar-card,
+body[data-app-mode="standard"] .analysis-layout-v2 .polar-card {
+  grid-column: 2 !important;
+  height: 204px !important;
+}
+
+.analysis-panel[data-panel-mode="passes"] .analysis-layout-v2 {
+  grid-template-columns: 1fr !important;
+}
+
+.analysis-panel[data-panel-mode="passes"] .analysis-layout-v2 .pass-manager-card {
+  display: grid !important;
+  grid-column: 1 !important;
+}
+
+.analysis-panel[data-panel-mode="passes"] .analysis-layout-v2 .histogram-card,
+.analysis-panel[data-panel-mode="passes"] .analysis-layout-v2 .polar-card {
+  display: none !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 0.42rem !important;
+}
+
+.analysis-layout-v2 .is-hidden {
+  display: none !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 .pass-manager-card {
+  display: grid !important;
+  order: 1 !important;
+  flex: 0 0 27% !important;
+  height: 204px !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 .histogram-card {
+  display: grid !important;
+  order: 2 !important;
+  flex: 0 0 33% !important;
+  height: 204px !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 .polar-card {
+  display: grid !important;
+  order: 3 !important;
+  flex: 1 1 40% !important;
+  height: 204px !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 .pass-manager-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  display: grid !important;
+  grid-auto-rows: min-content !important;
+  align-content: start !important;
+  justify-items: stretch !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 .pass-manager-body {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 .pass-manager-head {
+  flex: 0 0 auto !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 #histogram-canvas {
+  height: 154px !important;
+  max-width: 100% !important;
+}
+
+.analysis-panel[data-panel-mode="split"][data-mode="full"] .analysis-layout-v2 #histogram-canvas {
+  height: 178px !important;
+}
+
+.analysis-layout-v2 .polar-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 0.42rem !important;
+}
+
+.analysis-layout-v2 .polar-side {
+  flex: 0 0 180px !important;
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+  gap: 0.08rem !important;
+}
+
+.analysis-panel[data-panel-mode="split"] .analysis-layout-v2 #polar-canvas {
+  width: 186px !important;
+  height: 186px !important;
+}
+
+.analysis-panel[data-panel-mode="split"][data-mode="full"] .analysis-layout-v2 #polar-canvas {
+  width: 220px !important;
+  height: 220px !important;
+}
+
+.analysis-panel[data-panel-mode="split"][data-mode="full"] .analysis-layout-v2 .pass-manager-card,
+.analysis-panel[data-panel-mode="split"][data-mode="full"] .analysis-layout-v2 .histogram-card,
+.analysis-panel[data-panel-mode="split"][data-mode="full"] .analysis-layout-v2 .polar-card {
+  height: 228px !important;
+}
+
+.analysis-panel[data-panel-mode="split"][data-mode="full"] .analysis-layout-v2 .pass-manager-card {
+  grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+/* Astro Color Mixer Web v0.9.3-beta */
+.pass-manager-head {
+  padding: 0 0.12rem !important;
+  margin-bottom: 0.08rem !important;
+}
+
+.pass-manager-list {
+  gap: 0.02rem !important;
+  padding-right: 0.08rem !important;
+  align-content: start !important;
+}
+
+.pass-manager-row {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0.12rem 0.16rem !important;
+  min-height: 0 !important;
+}
+
+.pass-manager-row.is-selected {
+  border: 1px solid rgba(214,162,27,0.5) !important;
+  background: linear-gradient(90deg, rgba(214,162,27,0.12), rgba(255,255,255,0.02)) !important;
+}
+
+.pass-manager-enabled {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.pass-manager-name,
+.pass-manager-summary,
+.pass-manager-type,
+.pass-manager-range {
+  line-height: 1.1 !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"] .analysis-layout-v2 #polar-canvas,
+body[data-app-mode="standard"] .analysis-layout-v2 #polar-canvas {
+  width: 186px !important;
+  height: 186px !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"][data-mode="full"] .analysis-layout-v2 #polar-canvas,
+body[data-app-mode="standard"] .analysis-panel[data-mode="full"] .analysis-layout-v2 #polar-canvas {
+  width: 210px !important;
+  height: 210px !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"] .analysis-layout-v2 #histogram-canvas,
+body[data-app-mode="standard"] .analysis-layout-v2 #histogram-canvas {
+  height: 154px !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"][data-mode="full"] .analysis-layout-v2 #histogram-canvas,
+body[data-app-mode="standard"] .analysis-panel[data-mode="full"] .analysis-layout-v2 #histogram-canvas {
+  height: 178px !important;
+}
+
+.analysis-panel[data-panel-mode="diagnostics"][data-mode="full"] .analysis-layout-v2 .histogram-card,
+.analysis-panel[data-panel-mode="diagnostics"][data-mode="full"] .analysis-layout-v2 .polar-card,
+body[data-app-mode="standard"] .analysis-panel[data-mode="full"] .analysis-layout-v2 .histogram-card,
+body[data-app-mode="standard"] .analysis-panel[data-mode="full"] .analysis-layout-v2 .polar-card {
+  height: 228px !important;
+}

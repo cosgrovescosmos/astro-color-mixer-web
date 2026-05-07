@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Color Mixer FAQ</title>
+  <style>
+    body { margin: 0; background: #0f141a; color: #e7edf5; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 940px; margin: 0 auto; padding: 44px 24px 72px; }
+    h1, h2 { color: #f8fbfe; line-height: 1.2; }
+    .subtitle { color: #9fb2c7; margin-bottom: 2rem; }
+    section { background: #151c24; border: 1px solid #283344; border-radius: 14px; padding: 18px 22px; margin: 16px 0; }
+    code, pre { background: #0a1016; border-radius: 8px; }
+    code { padding: 0.1rem 0.35rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Astro Color Mixer FAQ &amp; Practical Guide</h1>
+    <p class="subtitle">Browser-based nonlinear RGB color and luminance refinement for astrophotography.</p>
+
+    <section><h2>What is Astro Color Mixer?</h2><p>Astro Color Mixer is a nonlinear RGB finishing tool built around practical astro color bands, luminance targeting, preview diagnostics, and optional multi-pass refinement.</p></section>
+    <section><h2>What kind of image should I use?</h2><p>Use nonlinear RGB images. The tool supports stars-present and starless/star-reduced workflows, but is not intended for raw linear calibration data.</p></section>
+    <section><h2>Stars Present vs Starless / Star-Reduced</h2><p><strong>Stars Present</strong> is safer for bright star cores and halos. <strong>Starless / Star-Reduced</strong> allows more freedom for nebulae, dust, and faint structures after stars have been reduced or removed.</p></section>
+    <section><h2>Standard vs Advanced workflow</h2><p>Standard mode stays compact for broad color work. Advanced mode exposes Refinement Passes, Range Mask controls, and more targeted pass-aware editing.</p></section>
+    <section><h2>Color Mixer sliders</h2><p>Hue rotates color direction, Saturation changes color strength, and Luminance brightens or darkens the active color family.</p></section>
+    <section><h2>Selected Band width and feather</h2><p>Width controls how broad the selected hue family is. Feather controls how softly the selection falls off into neighboring colors.</p></section>
+    <section><h2>Range Mask</h2><p>Range Mask constrains an edit by luminance using Low, High, and Feather. Presets provide starting points for shadows, midtones, highlights, faint signal, and bright cores.</p></section>
+    <section><h2>Neutral / Low-Saturation</h2><p>When saturation is very low, hue becomes unreliable. Neutral / Low-Saturation provides a luminance-focused path for gray background, dust, and weak-color structures.</p></section>
+    <section><h2>Refinement Passes</h2><p>Refinement Passes are sequential adjustment passes. Base Pass is for broad work; later passes are for targeted cleanup. They are not Photoshop layers.</p></section>
+    <section><h2>Probe, histogram, and polar plot</h2><p>The probe samples the preview, the histogram shows preview luminance distribution, and the polar plot shows hue/saturation distribution. Together they help guide Range Mask and color-band choices.</p></section>
+    <section><h2>Preview vs saved output</h2><p>Preview is downsampled for responsiveness. Saved output renders from full-resolution data, so fine details can differ slightly.</p></section>
+    <section><h2>TIFF import/export</h2><p>The web app supports browser-side TIFF import and export when the included TIFF I/O code and available browser memory allow it. Large files can be memory-intensive.</p></section>
+    <section><h2>Adjustment Sets</h2><p>Adjustment Sets are JSON files that store the working state of the app. Starter Presets are canned starting points; Adjustment Sets are your saved session state.</p></section>
+    <section><h2>Common mistakes</h2><p>Common mistakes include using linear data, making extreme hue shifts, ignoring mask views, assuming hue is meaningful in neutral background, and pushing image sizes beyond available browser memory.</p></section>
+  </main>
+</body>
+</html>

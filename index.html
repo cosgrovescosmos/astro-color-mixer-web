@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Color Mixer | Cosgrove’s Cosmos</title>
+  <link rel="stylesheet" href="./app.css?v=0.9.3-beta">
+  <link rel="stylesheet" href="./analysis.css?v=0.9.3-beta">
+</head>
+<body>
+  <header class="app-hero">
+    <div class="brand-lockup">
+      <img id="cc-logo" class="cc-logo" alt="Cosgrove's Cosmos" src="assets/logo.webp">
+      <div class="hero-copy">
+        <h1>Astro Color Mixer <span id="build-stamp" class="title-version">v0.9.3-beta</span></h1>
+        <p>Nonlinear RGB chroma-vector color control for astrophotography.</p>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button id="faq-btn" class="button subtle" type="button" title="Open the Astro Color Mixer FAQ.">FAQ</button>
+      <button id="technical-appendix-btn" class="button subtle" type="button" title="Open the technical appendix and workflow guide.">Technical Appendix</button>
+    </div>
+  </header>
+
+  <div class="app-toolbar">
+    <div class="toolbar-group toolbar-group-primary">
+      <button id="load-image-btn" class="button accent" title="Load a nonlinear RGB image into the working preview. PNG, JPEG, and supported TIFF files are accepted.">Load Image</button>
+      <button id="save-image-btn" class="button" title="Save a full-resolution PNG or 16-bit TIFF. In mask preview modes, save the active mask instead.">Save Image</button>
+      <button id="render-preview-btn" class="button subtle" title="Force a preview recompute if Auto Preview is off.">Render Preview</button>
+      <input id="image-file-input" type="file" accept=".png,.jpg,.jpeg,.tif,.tiff,image/*" hidden>
+      <input id="preset-file-input" type="file" accept=".json,application/json" hidden>
+    </div>
+
+    <div class="toolbar-group toolbar-group-controls">
+      <label class="toolbar-label mode-toolbar-field" for="app-mode-select" title="Standard keeps the workflow compact. Advanced reveals passes, Range Mask, and pass-aware compare.">
+        <span>Workflow</span>
+        <div class="mode-toolbar-inline">
+          <select id="app-mode-select">
+            <option value="standard" selected>Standard</option>
+            <option value="advanced">Advanced</option>
+          </select>
+          <span id="mode-hint" class="mode-toolbar-hint">Simple workflow</span>
+        </div>
+      </label>
+      <label class="toolbar-label" for="image-type-select" title="Choose the protection behavior for stars-present or star-reduced images.">
+        <span>Image</span>
+        <select id="image-type-select"></select>
+      </label>
+      <label class="toolbar-label" for="sensitivity-select" title="Change slider range without changing the current settings.">
+        <span>Sensitivity</span>
+        <select id="sensitivity-select"></select>
+      </label>
+      <label class="toolbar-label" for="export-format-select" title="Choose full-resolution PNG or 16-bit TIFF export. TIFF export is written directly, not through an 8-bit canvas path.">
+        <span>Export</span>
+        <select id="export-format-select">
+          <option value="png">PNG</option>
+          <option value="tiff">TIFF</option>
+        </select>
+      </label>
+      <label class="toggle-chip" title="Temporarily disable all adjustments while leaving your settings intact.">
+        <input id="bypass-toggle" type="checkbox">
+        <span>Bypass</span>
+      </label>
+      <label class="toggle-chip" title="Update the preview automatically after control changes.">
+        <input id="auto-preview-toggle" type="checkbox" checked>
+        <span>Auto Preview</span>
+      </label>
+      <label class="toggle-chip" title="Use a downsampled working preview for faster interaction. Saved output still renders from full resolution.">
+        <input id="fast-preview-toggle" type="checkbox" checked>
+        <span>Fast Preview</span>
+      </label>
+    </div>
+  </div>
+
+  <main class="workspace">
+    <aside class="control-panel">
+      <section class="panel-block mixer-panel">
+        <div class="panel-heading">
+          <h2>Color Mixer</h2>
+          <div id="active-summary" class="active-summary">Active: none</div>
+        </div>
+        <details id="starter-presets-panel" class="starter-presets-panel" open>
+          <summary>
+            <span class="summary-label">
+              <span class="disclosure-arrow" aria-hidden="true">▲</span>
+              <span>Starter Presets</span>
+            </span>
+          </summary>
+          <div class="preset-strip">
+            <label class="toolbar-label compact preset-field" for="starter-preset-select" title="Starter presets are conservative first moves, not final looks.">
+              <div class="preset-inline">
+                <select id="starter-preset-select"></select>
+                <button id="apply-starter-preset-btn" class="button subtle" type="button">Apply</button>
+                <button id="save-preset-btn" class="button subtle" type="button" title="Save the current mixer and range-mask settings as a JSON adjustment set.">Save Set</button>
+                <button id="load-preset-btn" class="button subtle" type="button" title="Load a previously saved JSON adjustment set.">Load Set</button>
+              </div>
+            </label>
+          </div>
+          <div class="preset-help">Starter presets initialize the edit. After that, use refinement passes for targeted work.</div>
+        </details>
+        <div class="pass-strip advanced-only">
+          <label class="toolbar-label compact pass-field" for="pass-select" title="Base Pass is for broad global changes. Use a new pass for targeted refinements.">
+            <span>Pass</span>
+            <div class="pass-inline">
+              <select id="pass-select"></select>
+              <button id="add-adjustment-btn" class="button subtle" type="button">+ New</button>
+              <button id="duplicate-adjustment-btn" class="button subtle" type="button">Duplicate</button>
+              <button id="delete-adjustment-btn" class="button subtle" type="button">Delete</button>
+            </div>
+          </label>
+        </div>
+        <div class="pass-status-row advanced-only">
+          <div id="active-pass-strip" class="active-pass-strip">Active Pass: Base Pass · Range Mask: Off</div>
+          <div class="pass-help">Base = global. New pass = targeted refinements.</div>
+        </div>
+        <div id="range-mask-pass-modal" class="modal-backdrop is-hidden advanced-only" aria-hidden="true">
+          <div class="modal-card" role="dialog" aria-labelledby="range-mask-pass-modal-title">
+            <div class="modal-heading">
+              <div class="modal-kicker">Targeted refinement choice</div>
+              <h3 id="range-mask-pass-modal-title">Range Mask on an active pass</h3>
+            </div>
+            <div class="modal-copy">
+              <div class="modal-lead">This pass already has active adjustments.</div>
+              <div class="modal-paragraph">Use <strong>Limit Current Pass</strong> if the mask should constrain the work you already did here.</div>
+              <div class="modal-paragraph">Use <strong>Start New Pass</strong> when you want a separate surgical refinement without changing the broader correction already in place.</div>
+            </div>
+            <div class="modal-actions">
+              <button id="range-mask-keep-current-btn" class="button subtle" type="button">Limit Current Pass</button>
+              <button id="range-mask-new-pass-btn" class="button accent is-default-action" type="button" autofocus>Start New Pass</button>
+              <button id="range-mask-cancel-btn" class="button subtle" type="button">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <div id="preset-pass-modal" class="modal-backdrop is-hidden advanced-only" aria-hidden="true">
+          <div class="modal-card" role="dialog" aria-labelledby="preset-pass-modal-title">
+            <div class="modal-heading">
+              <h3 id="preset-pass-modal-title">Apply preset to active pass?</h3>
+            </div>
+            <div class="modal-copy">
+              This pass already has active adjustments.
+              <br><br>
+              Do you want to replace the current pass with this preset, or create a new refinement pass and apply the preset there?
+            </div>
+            <div class="modal-actions">
+              <button id="preset-replace-current-btn" class="button subtle" type="button">Replace Current Pass</button>
+              <button id="preset-apply-new-pass-btn" class="button" type="button">Apply to New Pass</button>
+              <button id="preset-cancel-btn" class="button subtle" type="button">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <div id="advanced-mode-modal" class="modal-backdrop is-hidden" aria-hidden="true">
+          <div class="modal-card" role="dialog" aria-labelledby="advanced-mode-modal-title">
+            <div class="modal-heading">
+              <div class="modal-kicker">Workflow choice</div>
+              <h3 id="advanced-mode-modal-title">Advanced mode changes the workflow</h3>
+            </div>
+            <div class="modal-copy">
+              <div class="modal-lead">Advanced mode is for targeted refinement work.</div>
+              <div class="modal-paragraph">Standard mode stays focused on broad global color adjustment with a simpler image-first layout.</div>
+              <div class="modal-paragraph">Advanced mode is where you separate broad base work from later surgical corrections.</div>
+              <div class="modal-paragraph">When you continue to Advanced, the app reveals:</div>
+              <div class="modal-points">
+                <div>Refinement Passes for second and third rounds of correction</div>
+                <div>Range Mask controls for surgical luminance targeting</div>
+                <div>Pass-aware compare behavior while editing a specific pass</div>
+              </div>
+              <div class="modal-paragraph">Use <strong>Base Pass</strong> for broad color balance. Use <strong>New Pass</strong> when you want a separate targeted refinement rather than changing your base correction.</div>
+            </div>
+            <div class="modal-actions">
+              <button id="advanced-mode-continue-btn" class="button accent is-default-action" type="button" autofocus>Continue to Advanced</button>
+              <button id="advanced-mode-cancel-btn" class="button subtle" type="button">Stay in Standard</button>
+            </div>
+          </div>
+        </div>
+        <div class="tabs" id="mixer-tabs">
+          <button class="tab" type="button" data-tab="hue">Hue</button>
+          <button class="tab" type="button" data-tab="saturation">Saturation</button>
+          <button class="tab" type="button" data-tab="luminance">Luminance</button>
+        </div>
+        <div id="slider-panel" class="slider-panel"></div>
+      </section>
+
+      <section class="panel-block tool-panel">
+        <div class="active-pass-card advanced-only">
+          <div class="panel-heading compact-heading">
+            <div>
+              <h2 id="active-pass-title">Editing Base Pass</h2>
+              <div id="active-pass-pill" class="selected-pill">Global pass</div>
+            </div>
+          </div>
+          <div id="active-pass-compare-note" class="active-pass-compare-note">Editing Base Pass · Global</div>
+        </div>
+        <div class="tabs tool-tabs" id="tool-tabs">
+          <button class="tab tool-tab" type="button" data-tool-tab="band">Band</button>
+          <button class="tab tool-tab advanced-only" type="button" data-tool-tab="range-mask">Range Mask</button>
+        </div>
+
+        <div id="band-tab" class="tool-card">
+          <div class="panel-heading">
+            <div>
+              <div class="heading-label">
+                <h2>Band</h2>
+                <button class="help-chip" type="button" data-tip="Adjust hue coverage for the currently selected color family. Width sets the span and Feather softens the edges." aria-label="Selected Band help">?</button>
+              </div>
+              <div id="selected-band-pill" class="selected-pill">Red / H-alpha</div>
+            </div>
+            <div class="heading-actions">
+              <button id="solo-band-toggle-btn" class="toggle-button" type="button" aria-pressed="false">Solo Selected Band</button>
+              <button id="reset-selected-mini-btn" class="mini-reset" type="button" title="Reset Selected Band">Reset</button>
+            </div>
+          </div>
+          <label class="field">
+            <span>Band</span>
+            <select id="selected-band-select"></select>
+          </label>
+          <input id="solo-band-toggle" type="checkbox" hidden>
+          <label class="field">
+            <div class="field-title">
+              <span>Width</span>
+              <output id="width-value">45°</output>
+            </div>
+            <input id="width-slider" type="range" min="10" max="75" step="1" value="45">
+          </label>
+          <label class="field">
+            <div class="field-title">
+              <span>Feather</span>
+              <output id="feather-value">0.75</output>
+            </div>
+            <input id="feather-slider" type="range" min="0.35" max="1" step="0.01" value="0.75">
+          </label>
+          <div class="hue-wheel-wrap">
+            <canvas id="hue-wheel-canvas" width="180" height="180"></canvas>
+            <div id="hue-wheel-readout" class="wheel-readout"></div>
+          </div>
+          <div class="button-row">
+            <button id="reset-selected-btn" class="button" type="button">Reset Selected</button>
+            <button id="reset-all-btn" class="button subtle" type="button">Reset Active Pass…</button>
+          </div>
+        </div>
+
+        <div id="range-mask-tab" class="tool-card is-hidden advanced-only">
+          <div class="panel-heading">
+            <div>
+              <div class="heading-label">
+                <h2>Range Mask</h2>
+                <button class="help-chip" type="button" data-tip="Use luminance limits to include shadows, midtones, highlights, faint signal, or bright cores. Disabled by default." aria-label="Range Mask help">?</button>
+              </div>
+              <div id="range-mask-status" class="selected-pill">Range Mask Off</div>
+            </div>
+            <button id="reset-range-mask-mini-btn" class="mini-reset" type="button" title="Reset Range Mask">Reset</button>
+          </div>
+          <label class="checkbox-row">
+            <input id="range-mask-enabled" type="checkbox">
+            <span>Enable Range Mask</span>
+          </label>
+          <label class="field">
+            <span>Range Preset</span>
+            <select id="range-mask-preset"></select>
+          </label>
+          <label class="field">
+            <div class="field-title">
+              <span>Low</span>
+              <output id="range-mask-low-value">0.00</output>
+            </div>
+            <input id="range-mask-low" type="range" min="0" max="1" step="0.01" value="0">
+          </label>
+          <label class="field">
+            <div class="field-title">
+              <span>High</span>
+              <output id="range-mask-high-value">1.00</output>
+            </div>
+            <input id="range-mask-high" type="range" min="0" max="1" step="0.01" value="1">
+          </label>
+          <label class="field">
+            <div class="field-title">
+              <span>Feather</span>
+              <output id="range-mask-feather-value">0.10</output>
+            </div>
+            <input id="range-mask-feather" type="range" min="0.01" max="0.25" step="0.01" value="0.10">
+          </label>
+          <button id="reset-range-mask-btn" class="button subtle" type="button">Reset Range Mask</button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="viewport-shell">
+      <section class="viewport-panel">
+        <div class="viewport-header">
+          <div class="preview-copy">
+            <h2>Main Preview</h2>
+            <div id="preview-label" class="preview-label">Load an image to begin.</div>
+            <div id="preview-file" class="preview-file">No image loaded.</div>
+            <div id="preview-warning" class="preview-warning"></div>
+          </div>
+          <div class="preview-toolbar">
+            <label class="toolbar-label compact preview-toolbar-field" for="preview-mode-select">
+              <span>Preview</span>
+              <select id="preview-mode-select"></select>
+            </label>
+            <label class="toolbar-label compact preview-toolbar-field advanced-only" for="compare-mode-select" title="Choose what click-and-hold compares against while editing in Advanced mode.">
+              <span>Compare</span>
+              <select id="compare-mode-select">
+                <option value="auto">Auto</option>
+                <option value="original">Original</option>
+                <option value="pass">Before Active Pass</option>
+              </select>
+            </label>
+            <div class="preview-zoom-row">
+              <button id="fit-btn" class="button preview-header-button">Fit</button>
+              <button id="zoom-100-btn" class="button preview-header-button">1x</button>
+              <button id="zoom-200-btn" class="button preview-header-button">2x</button>
+              <label class="zoom-label preview-header-zoom" for="zoom-slider">
+                <span>Zoom</span>
+                <input id="zoom-slider" type="range" min="0.1" max="8" step="0.01" value="1">
+              </label>
+              <output id="zoom-value">Fit</output>
+            </div>
+          </div>
+        </div>
+        <div id="canvas-wrap">
+          <div id="canvas-hint" class="canvas-hint">Click to probe · Hold to compare original</div>
+          <canvas id="preview-canvas"></canvas>
+        </div>
+      </section>
+
+      <details id="analysis-panel" class="analysis-panel">
+        <summary>
+          <span class="analysis-summary-main">
+            <span class="summary-label">
+              <span class="disclosure-arrow" aria-hidden="true">▲</span>
+              <span>Analysis Panel</span>
+            </span>
+            <span class="analysis-summary-controls advanced-only">
+              <span class="analysis-panel-label">View</span>
+              <span class="analysis-segmented">
+                <button id="panel-mode-diagnostics-btn" class="panel-mode-btn is-active" type="button" data-panel-mode="diagnostics">Diagnostics</button>
+                <button id="panel-mode-passes-btn" class="panel-mode-btn advanced-only" type="button" data-panel-mode="passes">Passes</button>
+                <button id="panel-mode-split-btn" class="panel-mode-btn advanced-only" type="button" data-panel-mode="split">Split</button>
+              </span>
+            </span>
+            <span class="analysis-summary-controls">
+              <span class="analysis-panel-label">Size</span>
+              <label class="toolbar-label compact analysis-size-field" for="analysis-mode-select" title="Choose how much diagnostic content the Analysis Panel shows.">
+                <select id="analysis-mode-select">
+                  <option value="collapsed">Collapsed</option>
+                  <option value="compact" selected>Compact</option>
+                  <option value="full">Full</option>
+                </select>
+              </label>
+            </span>
+          </span>
+          <span id="analysis-summary-line" class="analysis-summary-line">Probe: click image to inspect luminance and color position.</span>
+        </summary>
+        <div class="analysis-body analysis-layout-v2">
+          <section id="pass-manager-card" class="analysis-card pass-manager-card advanced-only is-hidden">
+            <div class="analysis-card-header pass-manager-header">
+              <div class="heading-label">
+                <h3>Pass Manager</h3>
+              </div>
+              <div class="pass-manager-actions">
+                <button id="pass-manager-new-btn" class="button subtle" type="button">+ New Pass</button>
+                <button id="pass-manager-duplicate-btn" class="button subtle" type="button">Duplicate</button>
+                <button id="pass-manager-delete-btn" class="button subtle" type="button">Delete</button>
+              </div>
+            </div>
+            <div class="analysis-card-body pass-manager-body">
+              <div class="pass-manager-head">
+                <span class="pass-col-enabled">On</span>
+                <span class="pass-col-name">Pass</span>
+                <span class="pass-col-type">Type</span>
+                <span class="pass-col-summary">Active adjustments</span>
+                <span class="pass-col-range">Range</span>
+              </div>
+              <div id="pass-manager-list" class="pass-manager-list" aria-label="Pass manager list"></div>
+            </div>
+          </section>
+
+          <section class="analysis-card histogram-card">
+            <div class="analysis-card-header">
+              <div class="heading-label">
+                <h3>Histogram</h3>
+                <button class="help-chip" type="button" data-tip="Shows brightness distribution from black to white. Range Mask overlays the active luminance selection and feather shoulders." aria-label="Histogram help">?</button>
+              </div>
+              <div id="probe-readout" class="analysis-inline-status">Probe: click image to inspect luminance and color position.</div>
+              <div id="histogram-state-label" class="analysis-state-label">Adjusted</div>
+            </div>
+            <div class="analysis-card-body histogram-layout">
+              <div class="single-plot-wrap">
+                <canvas id="histogram-canvas" width="420" height="150"></canvas>
+              </div>
+              <div id="histogram-stats" class="histogram-stats">No image loaded.</div>
+            </div>
+          </section>
+
+          <section class="analysis-card polar-card">
+            <div class="analysis-card-header">
+              <div class="heading-label">
+                <h3>Polar Plot</h3>
+                <button class="help-chip" type="button" data-tip="Angle is hue and radius is saturation. The probe marker shows the sampled pixel before and after adjustment." aria-label="Polar plot help">?</button>
+              </div>
+              <div id="polar-state-label" class="analysis-state-label">Adjusted</div>
+            </div>
+            <div class="analysis-card-body polar-layout">
+              <div class="polar-wrap single-polar-wrap">
+                <div class="polar-column single-polar-column">
+                  <canvas id="polar-canvas" width="176" height="176"></canvas>
+                </div>
+              </div>
+              <div class="polar-side">
+                <div class="analysis-inline-controls polar-inline-controls">
+                  <label class="field compact-field">
+                    <span>Polar Data</span>
+                    <select id="polar-mode-select">
+                      <option value="selected">Selected Band</option>
+                      <option value="all">Total Adjustments</option>
+                    </select>
+                  </label>
+                  <label class="checkbox-row compact-checkbox">
+                    <input id="affected-only-toggle" type="checkbox">
+                    <span>Mask-affected Pixels Only</span>
+                  </label>
+                </div>
+                <label class="checkbox-row compact-checkbox probe-toggle-row advanced-only">
+                  <input id="auto-select-probe-toggle" type="checkbox" checked>
+                  <span>Auto-select band from probe</span>
+                </label>
+                <div id="diagnostic-stats" class="diagnostic-stats">No image loaded.</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <details id="debug-panel" class="debug-panel">
+    <summary><span class="summary-label"><span class="disclosure-arrow" aria-hidden="true">▲</span><span>Beta Debug Log</span></span></summary>
+    <pre id="status-bar" class="status-bar">Waiting for image load.</pre>
+  </details>
+
+  <script src="./image-io-tiff.js?v=0.9.3-beta"></script>
+  <script src="./image-io.js?v=0.9.3-beta"></script>
+  <script src="./color-math.js?v=0.9.3-beta"></script>
+  <script src="./presets.js?v=0.9.3-beta"></script>
+  <script src="./app.js?v=0.9.3-beta"></script>
+  <script type="module" src="./core-web-bridge.js?v=0.9.3-beta"></script>
+</body>
+</html>
