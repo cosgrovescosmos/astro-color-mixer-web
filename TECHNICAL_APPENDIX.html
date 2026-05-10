@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Color Mixer Web Technical Appendix</title>
+  <style>
+    body { margin: 0; background: #101419; color: #e8eef6; font: 16px/1.68 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 44px 24px 72px; }
+    h1, h2, h3 { color: #f8fbfe; }
+    h1 { margin-bottom: 0.35rem; }
+    .subtitle { color: #9fb2c9; margin: 0 0 1.5rem; }
+    section { background: #151c24; border: 1px solid #283344; border-radius: 14px; padding: 18px 22px; margin: 16px 0; }
+    pre { background: #0a1016; color: #f4f7fb; padding: 16px; border-radius: 10px; overflow-x: auto; }
+    code { background: #0e141b; padding: 0.1rem 0.35rem; border-radius: 6px; }
+    ul { padding-left: 1.35rem; }
+    li { margin: 0.32rem 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Astro Color Mixer Web Technical Appendix</h1>
+    <p class="subtitle">Processing assumptions, Selected Band mask model, Range Mask model, and browser-side implementation notes.</p>
+
+    <section>
+      <h2>1. Introduction</h2>
+      <p>This appendix describes the processing model used by Astro Color Mixer Web and the practical assumptions behind it. The tool is designed for nonlinear RGB astrophotography images and combines hue-band selection, luminance-range masking, low-saturation handling, and sequential refinement passes.</p>
+      <p>The goal is not to claim physically perfect color reconstruction. The goal is to provide a controlled nonlinear RGB editing model that is useful for astrophotography finishing work in a browser-based environment.</p>
+    </section>
+
+    <section>
+      <h2>2. Design Goals</h2>
+      <ul>
+        <li>controlled nonlinear RGB refinement</li>
+        <li>an astro-specific color-band workflow</li>
+        <li>prevention of arbitrary global color swings</li>
+        <li>support for both stars-present and starless workflows</li>
+        <li>visible mask and diagnostic feedback</li>
+        <li>client-side processing without uploading image data to a server</li>
+      </ul>
+      <p>This makes the tool a finishing and refinement environment rather than a calibration or reconstruction framework.</p>
+    </section>
+
+    <section>
+      <h2>3. Processing Assumptions</h2>
+      <ul>
+        <li>nonlinear RGB input</li>
+        <li>normalized floating-point RGB values in the range <code>0..1</code></li>
+        <li>browser-local image data processing</li>
+        <li>preview uses downsampled data for responsiveness</li>
+        <li>final save uses full-resolution working data</li>
+      </ul>
+      <p>These assumptions matter because the tool is intended for post-stretch, visually guided adjustment.</p>
+    </section>
+
+    <section>
+      <h2>4. Image Type: Stars Present vs Starless / Star-Reduced</h2>
+      <p>In <strong>Stars Present</strong> mode, Astro Color Mixer Web assumes the image still contains bright stellar structures, star cores, and halos. Protection is more conservative around bright star-like regions so large color or luminance moves are less likely to produce star-core distortion, oversaturated halos, or harsh highlight artifacts.</p>
+      <p>In <strong>Starless / Star-Reduced</strong> mode, Astro Color Mixer Web assumes stars have already been removed or strongly reduced. Protection can therefore allow more freedom in nebulae, galaxies, dust, and faint structures.</p>
+      <p>This setting does <strong>not</strong> detect stars, remove stars, or create a star mask. It changes protection weighting conceptually during adjustment.</p>
+    </section>
+
+    <section>
+      <h2>5. Luminance Model</h2>
+      <pre>Y = 0.2126 R + 0.7152 G + 0.0722 B</pre>
+      <p>Luminance is used for Range Mask construction, preview diagnostics, Neutral / Low-Saturation luminance control, and dark/highlight protection.</p>
+    </section>
+
+    <section>
+      <h2>6. Hue and Saturation Selection</h2>
+      <p>Hue and saturation are used for selection and adjustment behavior in an HSL-style sense. Hue is circular, hue distance must wrap at the ends of the angle domain, and low saturation makes hue unreliable.</p>
+      <p>This is why weak-color background, dust, and gray structures use a separate low-saturation path instead of relying on raw hue angle alone.</p>
+    </section>
+
+    <section>
+      <h2>7. Astro Color Bands</h2>
+      <pre>red 0°
+orange 30°
+yellow 60°
+green 120°
+cyan 180°
+blue 240°
+purple 275°
+magenta 315°</pre>
+      <p>These band centers are practical editing regions, not strict physical line definitions.</p>
+    </section>
+
+    <section>
+      <h2>8. Hue Radius and Feather</h2>
+      <p>The Selected Band control in the current web engine is best understood as an outer angular radius on each side of the hue center.</p>
+      <pre>distance = circularHueDistance(hue, center)
+outerWidth = width
+innerWidth = width * (1 - feather)
+mask = 1 - smoothstep(innerWidth, outerWidth, distance)</pre>
+      <p>This creates three distinct states:</p>
+      <ul>
+        <li><strong>Strong core</strong>: full-strength selection from the center out to <code>innerWidth</code></li>
+        <li><strong>Falloff zone</strong>: a smooth decline from <code>innerWidth</code> to <code>outerWidth</code></li>
+        <li><strong>Off region</strong>: no hue-band influence outside <code>outerWidth</code></li>
+      </ul>
+      <p>For example, if <code>outerWidth = 45°</code> and <code>feather = 0.75</code>, then <code>innerWidth = 11.25°</code>. That means the strongest influence is only near the selected hue center, while the adjustment continues to taper outward until it reaches ±45°.</p>
+    </section>
+
+    <section>
+      <h2>9. Saturation Reliability</h2>
+      <p>Low saturation makes hue unreliable because tiny RGB differences can produce unstable hue angles. The model therefore reduces trust in hue-band targeting as saturation falls. This prevents weak-color background and neutral structures from being pushed too aggressively by hue-specific controls.</p>
+    </section>
+
+    <section>
+      <h2>10. Dark and Highlight Protection</h2>
+      <p>Dark/background protection and highlight/star-core protection exist to keep the tool from behaving like an unrestricted global color rotator. Conceptually, these protections reduce adjustment weight in fragile areas such as near-black background or bright stellar cores, depending on mode and context.</p>
+    </section>
+
+    <section>
+      <h2>11. Range Mask</h2>
+      <pre>leftRamp = smoothstep(low - feather, low, Y)
+rightRamp = 1 - smoothstep(high, high + feather, Y)
+rangeMask = clamp01(leftRamp * rightRamp)</pre>
+      <p>Range Mask selects a luminance interval rather than a hue interval. Low/High define the main brightness window, and Feather softens the edges so targeted adjustments do not break abruptly.</p>
+    </section>
+
+    <section>
+      <h2>12. Neutral / Low-Saturation Model</h2>
+      <pre>neutralMask = 1 - smoothstep(satStart, satFull, saturation)</pre>
+      <p>This provides a luminance-focused path for weak-color pixels where hue is unreliable. It is especially relevant for background shaping, gray dust, and low-chroma structures. In this mode, hue radius does not apply.</p>
+    </section>
+
+    <section>
+      <h2>13. Chroma-Vector Adjustment Concept</h2>
+      <p>Conceptually, the tool separates a luminance-like component from chroma, scales saturation, rotates hue, adjusts luminance, then recombines and clamps to a valid RGB range. This should be understood as a practical nonlinear editing model, not a claim of perfect perceptual or physical color science.</p>
+    </section>
+
+    <section>
+      <h2>14. Combined Mask</h2>
+      <pre>finalMask =
+  hueMask *
+  saturationReliability *
+  darkProtection *
+  highlightProtection *
+  rangeMask</pre>
+      <p>If additional pass-specific terms are applied in code, they conceptually sit on top of this structure. The practical behavior is that hue selection, reliability, protection, and luminance gating combine before the edit is applied.</p>
+    </section>
+
+    <section>
+      <h2>15. Refinement Passes</h2>
+      <pre>working = original
+for each enabled pass:
+    working = applyPass(working, pass)</pre>
+      <p>This supports workflows such as broad global color setup first, targeted background or halo cleanup later, and highlight- or luminance-specific work in a separate pass.</p>
+    </section>
+
+    <section>
+      <h2>16. Preview and Diagnostics</h2>
+      <p>Preview is based on downsampled image data for speed. Histogram uses preview luminance, the polar plot uses sampled preview pixels, the probe reads preview coordinates, and mask views represent preview-resolution selection behavior.</p>
+      <p>Final save operates on the full-resolution working image, which is why small local detail differences can exist even when the overall preview direction is accurate.</p>
+    </section>
+
+    <section>
+      <h2>17. Adjustment Set JSON</h2>
+      <p>Adjustment Set JSON stores the working state of the tool. This can include image type, sensitivity, pass ordering and enabled state, band values, hue radius and feather, Range Mask state, Neutral / Low-Saturation state, and related working settings.</p>
+      <p>The file is intended for repeatability and workflow continuity rather than for diagnostic rendering.</p>
+    </section>
+
+    <section>
+      <h2>18. Browser and TIFF Considerations</h2>
+      <ul>
+        <li>memory usage matters for large images</li>
+        <li>TIFF import/export depends on the included browser-side TIFF I/O code</li>
+        <li>preview responsiveness may depend on browser performance and available RAM</li>
+      </ul>
+      <p>The tool is designed to stay local and client-side, but large astrophotography files can still be demanding in a browser session.</p>
+    </section>
+
+    <section>
+      <h2>19. Limitations</h2>
+      <ul>
+        <li>not intended for linear calibration</li>
+        <li>extreme changes can create artifacts</li>
+        <li>preview is approximate</li>
+        <li>hue is unreliable in neutral areas</li>
+        <li>Range Mask depends on the current stretch</li>
+        <li>saturated star cores require care</li>
+        <li>browser memory limits can constrain very large files</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>20. Practical Guidance</h2>
+      <ul>
+        <li>start with small adjustments</li>
+        <li>inspect masks before strong edits</li>
+        <li>create a new pass for targeted Range Mask work</li>
+        <li>use <strong>Stars Present</strong> when unsure</li>
+        <li>save Adjustment Sets for complex sessions</li>
+      </ul>
+      <p>Astro Color Mixer Web works best when used deliberately, with the user checking both the visual preview and the diagnostic views before committing strong targeted changes.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -772,6 +772,7 @@
     featherSlider: document.getElementById("feather-slider"),
     featherValue: document.getElementById("feather-value"),
     hueWheelCanvas: document.getElementById("hue-wheel-canvas"),
+    hueProfileCanvas: document.getElementById("hue-profile-canvas"),
     hueWheelReadout: document.getElementById("hue-wheel-readout"),
     resetSelectedMiniBtn: document.getElementById("reset-selected-mini-btn"),
     resetSelectedBtn: document.getElementById("reset-selected-btn"),
@@ -3145,6 +3146,125 @@
     elements.rangeMaskStatus.textContent = getCompactRangeMaskStatus();
   }
 
+  function normalizeHueDegrees(degrees) {
+    let value = degrees % 360;
+    if (value < 0) {
+      value += 360;
+    }
+    return value;
+  }
+
+  function formatAngleDegrees(value) {
+    const rounded = Math.round(value * 100) / 100;
+    if (Math.abs(rounded - Math.round(rounded)) < 0.005) {
+      return `${Math.round(rounded)}`;
+    }
+    return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
+  function buildWheelReadoutHtml(lines, note = "") {
+    const body = lines.map(({ label, value }) => (
+      `<div class="wheel-readout-line"><span class="wheel-readout-label">${label}</span><span class="wheel-readout-value">${value}</span></div>`
+    )).join("");
+    return `<div class="wheel-readout-title">Selection</div>${body}${note ? `<div class="wheel-readout-note">${note}</div>` : ""}`;
+  }
+
+  function drawAnnularSector(ctx, cx, cy, innerRadius, outerRadius, startDeg, endDeg, fillStyle) {
+    const start = normalizeHueDegrees(startDeg);
+    const end = normalizeHueDegrees(endDeg);
+    const spans = end <= start
+      ? [{ start, end: 360 }, { start: 0, end }]
+      : [{ start, end }];
+    ctx.fillStyle = fillStyle;
+    spans.forEach((span) => {
+      const a0 = toRad(span.start - 90);
+      const a1 = toRad(span.end - 90);
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerRadius, a0, a1, false);
+      ctx.arc(cx, cy, innerRadius, a1, a0, true);
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+
+  function drawBoundaryMarker(ctx, cx, cy, angleDeg, innerRadius, outerRadius, color, width = 2) {
+    const a = toRad(angleDeg - 90);
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.moveTo(cx + Math.cos(a) * innerRadius, cy + Math.sin(a) * innerRadius);
+    ctx.lineTo(cx + Math.cos(a) * outerRadius, cy + Math.sin(a) * outerRadius);
+    ctx.stroke();
+  }
+
+  function updateHueProfile(neutralSelected, band, outerWidth, innerWidth) {
+    const canvas = elements.hueProfileCanvas;
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+    const left = 8;
+    const right = w - 8;
+    const top = 6;
+    const bottom = h - 8;
+    const usableW = Math.max(1, right - left);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#0f1115";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#1f2430";
+    ctx.fillRect(left, top, usableW, bottom - top);
+    if (neutralSelected) {
+      const gradient = ctx.createLinearGradient(left, 0, right, 0);
+      gradient.addColorStop(0, "#2d333c");
+      gradient.addColorStop(0.5, "#d7d9dd");
+      gradient.addColorStop(1, "#2d333c");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(left, top, usableW, bottom - top);
+      return;
+    }
+    const domain = 75;
+    const centerX = Math.round((left + right) * 0.5);
+    for (let x = left; x < right; x += 1) {
+      const t = ((x - left) / Math.max(1, usableW - 1)) * 2 - 1;
+      const distance = Math.abs(t) * domain;
+      let color = "#232831";
+      if (distance <= innerWidth + 1e-6) {
+        color = "#f5be2d";
+      } else if (distance <= outerWidth + 1e-6) {
+        const blend = clamp((distance - innerWidth) / Math.max(1e-6, outerWidth - innerWidth), 0, 1);
+        const start = { r: 199, g: 151, b: 45 };
+        const end = { r: 77, g: 65, b: 39 };
+        color = `rgb(${Math.round(start.r + (end.r - start.r) * blend)}, ${Math.round(start.g + (end.g - start.g) * blend)}, ${Math.round(start.b + (end.b - start.b) * blend)})`;
+      }
+      ctx.fillStyle = color;
+      ctx.fillRect(x, top, 1, bottom - top);
+    }
+    const innerDx = Math.round((innerWidth / domain) * (usableW * 0.5));
+    const outerDx = Math.round((outerWidth / domain) * (usableW * 0.5));
+    ctx.strokeStyle = "#f5f5f5";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(centerX, top - 1);
+    ctx.lineTo(centerX, bottom + 1);
+    ctx.stroke();
+    ctx.strokeStyle = "#d9dce2";
+    ctx.beginPath();
+    ctx.moveTo(centerX - innerDx, top - 1);
+    ctx.lineTo(centerX - innerDx, bottom + 1);
+    ctx.moveTo(centerX + innerDx, top - 1);
+    ctx.lineTo(centerX + innerDx, bottom + 1);
+    ctx.stroke();
+    ctx.strokeStyle = "#d6b366";
+    ctx.beginPath();
+    ctx.moveTo(centerX - outerDx, top - 1);
+    ctx.lineTo(centerX - outerDx, bottom + 1);
+    ctx.moveTo(centerX + outerDx, top - 1);
+    ctx.lineTo(centerX + outerDx, bottom + 1);
+    ctx.stroke();
+  }
+
   function applyRangeMaskPreset(name) {
     getSelectedAdjustment().rangeMask = { ...RANGE_MASK_PRESETS[name] };
     syncRangeMaskControls();
@@ -3197,40 +3317,74 @@
       ctx.textAlign = "center";
       ctx.fillText("NEUTRAL", cx, cy + 4);
 
-      elements.hueWheelReadout.textContent = adjustment.rangeMask.enabled
-        ? `Low-saturation luminance · Sat ${adjustment.neutralLuminance.satStart.toFixed(2)}-${adjustment.neutralLuminance.satFull.toFixed(2)}`
-        : "Neutral luminance affects all low-saturation regions. Use Range Mask for tighter control.";
+      elements.hueWheelReadout.innerHTML = buildWheelReadoutHtml(
+        [
+          { label: "Selection", value: "Low-saturation" },
+          { label: "Hue Radius", value: "Not used" },
+          { label: "Feather", value: "N/A" },
+        ],
+        adjustment.rangeMask.enabled
+          ? `Low-saturation luminance · Sat ${adjustment.neutralLuminance.satStart.toFixed(2)}-${adjustment.neutralLuminance.satFull.toFixed(2)}`
+          : "Neutral luminance affects all low-saturation regions. Use Range Mask for tighter control."
+      );
       elements.hueWheelReadout.classList.toggle("is-advisory", !adjustment.rangeMask.enabled && Math.abs(adjustment.neutralLuminance.luminance) > 0.0001);
+      updateHueProfile(true);
       return;
     }
 
-    for (let degree = 0; degree < 360; degree += 1) {
-      ctx.beginPath();
-      ctx.strokeStyle = `hsl(${degree} 72% 54%)`;
-      ctx.lineWidth = 10;
-      ctx.arc(cx, cy, radius, toRad(degree - 90), toRad(degree - 89));
-      ctx.stroke();
+    for (let degree = 0; degree < 360; degree += 4) {
+      drawAnnularSector(ctx, cx, cy, radius - 5, radius + 5, degree, degree + 4, `hsl(${degree + 2} 72% 54%)`);
     }
 
-    ctx.beginPath();
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 12;
-    ctx.arc(cx, cy, radius + 24, 0, Math.PI * 2);
-    ctx.stroke();
+    drawAnnularSector(ctx, cx, cy, radius + 18, radius + 30, 0, 360, "rgba(255,255,255,0.08)");
 
-    const featherShoulder = Math.max(2, band.width * band.feather * 0.45);
-    const featherOuterWidth = Math.min(85, band.width + featherShoulder);
-    // Draw this like the histogram overlay:
-    // gold = selected width, gray = feather shoulder outside that width.
-    drawArc(ctx, cx, cy, radius + 24, featherOuterWidth, band.center, "rgba(255,255,255,0.24)", 10);
-    drawArc(ctx, cx, cy, radius + 24, band.width, band.center, "rgba(214,162,27,0.96)", 10);
+    const outerWidth = band.width;
+    const innerWidth = band.feather <= 1e-6 ? outerWidth : outerWidth * (1 - band.feather);
+    const outerTrackInner = radius + 18;
+    const outerTrackOuter = radius + 30;
+    if (innerWidth + 1e-6 < outerWidth) {
+      const featherSegments = Math.max(18, Math.ceil((outerWidth - innerWidth) / 2));
+      for (let i = 0; i < featherSegments; i += 1) {
+        const t0 = i / featherSegments;
+        const t1 = (i + 1) / featherSegments;
+        const blend = (t0 + t1) * 0.5;
+        const startColor = { r: 199, g: 151, b: 45 };
+        const endColor = { r: 77, g: 65, b: 39 };
+        const color = `rgb(${Math.round(startColor.r + (endColor.r - startColor.r) * blend)}, ${Math.round(startColor.g + (endColor.g - startColor.g) * blend)}, ${Math.round(startColor.b + (endColor.b - startColor.b) * blend)})`;
+        drawAnnularSector(
+          ctx,
+          cx,
+          cy,
+          outerTrackInner + 1,
+          outerTrackOuter - 1,
+          band.center - (innerWidth + (outerWidth - innerWidth) * t1),
+          band.center - (innerWidth + (outerWidth - innerWidth) * t0),
+          color
+        );
+        drawAnnularSector(
+          ctx,
+          cx,
+          cy,
+          outerTrackInner + 1,
+          outerTrackOuter - 1,
+          band.center + (innerWidth + (outerWidth - innerWidth) * t0),
+          band.center + (innerWidth + (outerWidth - innerWidth) * t1),
+          color
+        );
+      }
+    }
+    if (innerWidth > 1e-6) {
+      drawAnnularSector(ctx, cx, cy, outerTrackInner, outerTrackOuter, band.center - innerWidth, band.center + innerWidth, "#f5be2d");
+    }
+    drawBoundaryMarker(ctx, cx, cy, band.center - outerWidth, outerTrackOuter - 2, outerTrackOuter + 5, "#d6b366", 2);
+    drawBoundaryMarker(ctx, cx, cy, band.center + outerWidth, outerTrackOuter - 2, outerTrackOuter + 5, "#d6b366", 2);
 
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(toRad(band.center - 90));
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(radius + 24, 0);
+    ctx.moveTo(radius - 7, 0);
+    ctx.lineTo(radius + 32, 0);
     ctx.strokeStyle = "#f4df96";
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -3246,16 +3400,21 @@
     ctx.textAlign = "center";
     ctx.fillText(band.id.toUpperCase(), cx, cy + 4);
 
-    elements.hueWheelReadout.textContent = `Center ${band.center.toFixed(0)}°, Width ${band.width.toFixed(0)}°, Feather ${band.feather.toFixed(2)}`;
+    const affectedLow = formatAngleDegrees(normalizeHueDegrees(band.center - outerWidth));
+    const affectedHigh = formatAngleDegrees(normalizeHueDegrees(band.center + outerWidth));
+    elements.hueWheelReadout.innerHTML = buildWheelReadoutHtml(
+      [
+        { label: "Hue center", value: `${formatAngleDegrees(band.center)}°` },
+        { label: "Hue Radius", value: `±${formatAngleDegrees(outerWidth)}°` },
+        { label: "Strong core", value: `±${formatAngleDegrees(innerWidth)}°` },
+        { label: "Falloff", value: `${formatAngleDegrees(innerWidth)}°–${formatAngleDegrees(outerWidth)}°` },
+        { label: "Affected range", value: `${affectedLow}°–${affectedHigh}°` },
+        { label: "Feather", value: band.feather.toFixed(2) },
+      ],
+      "Strong core is full strength. The feather zone falls smoothly to zero by the outer radius."
+    );
     elements.hueWheelReadout.classList.remove("is-advisory");
-  }
-
-  function drawArc(ctx, cx, cy, radius, arcWidth, center, color, lineWidth) {
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.arc(cx, cy, radius, toRad(center - arcWidth - 90), toRad(center + arcWidth - 90));
-    ctx.stroke();
+    updateHueProfile(false, band, outerWidth, innerWidth);
   }
 
   function getMetricKeyForTab(tab) {

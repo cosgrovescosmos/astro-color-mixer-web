@@ -6,6 +6,66 @@
   <title>Astro Color Mixer | Cosgrove’s Cosmos</title>
   <link rel="stylesheet" href="./app.css?v=0.9.3-beta">
   <link rel="stylesheet" href="./analysis.css?v=0.9.3-beta">
+  <style>
+    .wheel-readout.wheel-readout-rich {
+      display: grid;
+      gap: 0.18rem;
+      width: min(100%, 240px);
+      padding: 0.4rem 0.55rem;
+      border-radius: 12px;
+      background: rgba(15, 18, 24, 0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.22;
+    }
+    .wheel-readout-rich .wheel-readout-title {
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #f1d38a;
+      text-transform: uppercase;
+    }
+    .wheel-readout-rich .wheel-readout-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      font-size: 0.66rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .wheel-readout-rich .wheel-readout-label {
+      color: rgba(255,255,255,0.68);
+    }
+    .wheel-readout-rich .wheel-readout-value {
+      color: rgba(255,255,255,0.96);
+      font-weight: 600;
+      text-align: right;
+    }
+    .wheel-readout-rich .wheel-readout-note {
+      font-size: 0.6rem;
+      color: rgba(255,255,255,0.62);
+      line-height: 1.18;
+    }
+    .selected-band-profile-wrap {
+      display: grid;
+      gap: 0.14rem;
+      justify-items: center;
+    }
+    .selected-band-profile-label {
+      width: min(100%, 240px);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.58rem;
+      color: rgba(255,255,255,0.62);
+      font-variant-numeric: tabular-nums;
+    }
+    #hue-profile-canvas {
+      width: 240px;
+      height: 34px;
+      max-width: 100%;
+    }
+  </style>
 </head>
 <body>
   <header class="app-hero">
@@ -200,7 +260,7 @@
             <div>
               <div class="heading-label">
                 <h2>Band</h2>
-                <button class="help-chip" type="button" data-tip="Adjust hue coverage for the currently selected color family. Width sets the span and Feather softens the edges." aria-label="Selected Band help">?</button>
+                <button class="help-chip" type="button" data-tip="Hue Radius sets the outer limit on each side of the hue center. Feather controls how quickly the selection falls from the strong core to that outer limit." aria-label="Selected Band help">?</button>
               </div>
               <div id="selected-band-pill" class="selected-pill">Red / H-alpha</div>
             </div>
@@ -216,7 +276,7 @@
           <input id="solo-band-toggle" type="checkbox" hidden>
           <label class="field">
             <div class="field-title">
-              <span>Width</span>
+              <span>Hue Radius</span>
               <output id="width-value">45°</output>
             </div>
             <input id="width-slider" type="range" min="10" max="75" step="1" value="45">
@@ -230,7 +290,16 @@
           </label>
           <div class="hue-wheel-wrap">
             <canvas id="hue-wheel-canvas" width="180" height="180"></canvas>
-            <div id="hue-wheel-readout" class="wheel-readout"></div>
+            <div id="hue-wheel-readout" class="wheel-readout wheel-readout-rich"></div>
+            <div class="selected-band-profile-wrap">
+              <canvas id="hue-profile-canvas" width="240" height="34"></canvas>
+              <div class="selected-band-profile-label">
+                <span>0°</span>
+                <span>Strong core</span>
+                <span>Falloff</span>
+                <span>Outer radius</span>
+              </div>
+            </div>
           </div>
           <div class="button-row">
             <button id="reset-selected-btn" class="button" type="button">Reset Selected</button>

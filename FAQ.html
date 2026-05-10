@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Color Mixer Web FAQ & Practical Guide</title>
+  <style>
+    body { margin: 0; background: #101419; color: #e8eef6; font: 16px/1.68 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 44px 24px 72px; }
+    h1, h2, h3 { color: #f8fbfe; }
+    h1 { margin-bottom: 0.35rem; }
+    .subtitle { color: #9fb2c9; margin: 0 0 1.5rem; }
+    section { background: #151c24; border: 1px solid #283344; border-radius: 14px; padding: 18px 22px; margin: 16px 0; }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: 0.32rem 0; }
+    code { background: #0e141b; padding: 0.1rem 0.35rem; border-radius: 6px; }
+    .callout { background: #111923; border: 1px solid #36465c; border-radius: 12px; padding: 12px 14px; color: #d7e4f3; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Astro Color Mixer Web FAQ &amp; Practical Guide</h1>
+    <p class="subtitle">Selected Band, Hue Radius, Range Mask, refinement passes, and practical browser workflow guidance.</p>
+
+    <section>
+      <h2>1. What is Astro Color Mixer Web?</h2>
+      <p>Astro Color Mixer Web is a browser-based nonlinear RGB color and luminance refinement tool for astrophotography. It is designed for finishing work after the image has already been stretched and visually prepared, not for raw calibration or linear correction.</p>
+      <p>It combines practical astro color bands, Selected Band targeting, Range Mask gating, preview diagnostics, and optional multi-pass refinement. Typical uses include emission-nebula shaping, reflection nebulosity lift, galaxy core refinement, magenta-halo cleanup, and neutral background luminance control.</p>
+      <div class="callout">The web app runs entirely client-side in the browser. Your image data stays local to the browser session.</div>
+    </section>
+
+    <section>
+      <h2>2. Where does it fit in a workflow?</h2>
+      <p>Use Astro Color Mixer Web after calibration, registration/integration, background correction, color calibration, nonlinear stretch, and any early noise reduction or contrast work that should happen before finishing color.</p>
+      <p>Its normal role is controlled final refinement, not broad upstream correction.</p>
+    </section>
+
+    <section>
+      <h2>3. What kind of image should I use?</h2>
+      <p>Use a nonlinear RGB image.</p>
+      <ul>
+        <li>Good: stretched RGB images with stars present</li>
+        <li>Good: starless RGB images</li>
+        <li>Good: star-reduced RGB images</li>
+        <li>Avoid: raw linear stacks</li>
+        <li>Avoid: data that still needs major global calibration work</li>
+      </ul>
+      <p>Preview is downsampled for speed. Saved output renders from the full-resolution working image.</p>
+    </section>
+
+    <section>
+      <h2>4. What is Stars Present vs Starless / Star-Reduced?</h2>
+      <p><strong>Stars Present</strong> is the safer mode for images that still contain normal stars, bright cores, and halos. It is more conservative around bright stellar structures so aggressive color or luminance moves are less likely to create damaged star cores or harsh highlight artifacts.</p>
+      <p><strong>Starless / Star-Reduced</strong> is intended for images where stars have already been removed or strongly reduced. Since fewer bright stellar features remain, the tool can act more freely on nebulae, galaxies, dust, and faint structures.</p>
+      <p>This setting does <strong>not</strong> remove stars and does <strong>not</strong> create a star mask. It only changes protection behavior.</p>
+    </section>
+
+    <section>
+      <h2>5. What is the basic workflow?</h2>
+      <ol>
+        <li>Load a nonlinear RGB image.</li>
+        <li>Choose <strong>Stars Present</strong> or <strong>Starless / Star-Reduced</strong>.</li>
+        <li>Start in the Base Pass.</li>
+        <li>Use H/S/L band sliders for broad adjustments.</li>
+        <li>Inspect the preview, histogram, polar plot, and probe.</li>
+        <li>Use <strong>Hue Radius</strong> and <strong>Feather</strong> to refine a selected hue family.</li>
+        <li>Use <strong>Range Mask</strong> for luminance-targeted work when needed.</li>
+        <li>Add refinement passes for cleanup or targeted follow-up work.</li>
+        <li>Save the image or save an Adjustment Set if you want to reuse the setup later.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>6. What are the color bands?</h2>
+      <ul>
+        <li><strong>Red / H-alpha</strong>: red emission-dominant structures</li>
+        <li><strong>Orange / Dust &amp; Galaxy Cores</strong>: warm dust and galactic core tones</li>
+        <li><strong>Yellow / Warm Stars</strong>: warm stellar and transitional yellow hues</li>
+        <li><strong>Green / Cast Control</strong>: green cast suppression or selective green shaping</li>
+        <li><strong>Cyan / OIII</strong>: cyan-turquoise oxygen-dominant structures</li>
+        <li><strong>Blue / Reflection Nebula</strong>: blue reflection nebulosity and cool blue regions</li>
+        <li><strong>Purple / Violet Cleanup</strong>: purple-violet cleanup and edge control</li>
+        <li><strong>Magenta / Halo Cleanup</strong>: magenta and pink halo cleanup</li>
+      </ul>
+      <p>These are practical editing regions, not claims of strict physical spectral isolation.</p>
+    </section>
+
+    <section>
+      <h2>7. What do Hue, Saturation, and Luminance do?</h2>
+      <ul>
+        <li><strong>Hue</strong> rotates the selected chroma region around the color wheel.</li>
+        <li><strong>Saturation</strong> strengthens or weakens the selected chroma region.</li>
+        <li><strong>Luminance</strong> brightens or darkens the selected region without changing the intent of the selected hue family.</li>
+      </ul>
+      <p>These are best used with moderation. Strong moves are usually safer when broken into separate passes.</p>
+    </section>
+
+    <section>
+      <h2>8. What are Hue Radius and Feather?</h2>
+      <p><strong>Hue Radius</strong> sets the outer angular limit on each side of the selected hue center. The current engine treats it as an outer radius, not a total width.</p>
+      <p><strong>Feather</strong> controls how much of that radius is used for falloff instead of full-strength influence.</p>
+      <p>The Selected Band mask works like this:</p>
+      <ul>
+        <li><strong>Strong core</strong>: full-strength selection from the hue center out to <code>innerWidth</code></li>
+        <li><strong>Falloff zone</strong>: a smooth decline from <code>innerWidth</code> to <code>outerWidth</code></li>
+        <li><strong>Off region</strong>: no hue-band influence outside <code>outerWidth</code></li>
+      </ul>
+      <p>For example, if <strong>Hue Radius = 45°</strong> and <strong>Feather = 0.75</strong>, then:</p>
+      <ul>
+        <li><code>outerWidth = 45°</code></li>
+        <li><code>innerWidth = 45 * (1 - 0.75) = 11.25°</code></li>
+        <li>strong core = ±11.25°</li>
+        <li>falloff = 11.25° to 45°</li>
+        <li>affected range = center ±45°</li>
+      </ul>
+      <p>This is why a radius value such as 45° affects more than 45° total width. It affects 45° on each side of the selected hue center.</p>
+    </section>
+
+    <section>
+      <h2>9. What is Range Mask?</h2>
+      <p>Range Mask limits adjustments by luminance rather than hue. You define a low/high interval and feather the edges so the selected adjustment acts mainly inside the chosen brightness band.</p>
+      <p>This is useful when you want a hue-band move to act mainly in shadows, midtones, background, or highlights instead of everywhere that hue appears.</p>
+    </section>
+
+    <section>
+      <h2>10. What is Neutral / Low-Saturation?</h2>
+      <p><strong>Neutral / Low-Saturation</strong> is not selected by hue angle. It is selected by low chroma / low saturation, where hue becomes unreliable.</p>
+      <p>That makes it useful for:</p>
+      <ul>
+        <li>neutral background luminance shaping</li>
+        <li>gray dust regions</li>
+        <li>weak-color structures</li>
+        <li>subtle sky/background cleanup</li>
+      </ul>
+      <p>When this mode is active, <strong>Hue Radius</strong> does not apply. <strong>Feather</strong> still matters because it softens the transition into more saturated pixels.</p>
+    </section>
+
+    <section>
+      <h2>11. What are Refinement Passes?</h2>
+      <p>Refinement Passes let you process the image in stages. They are not Photoshop layers. They are sequential adjustments that operate on the working result from the previous enabled pass.</p>
+      <p>A typical pattern is:</p>
+      <ul>
+        <li>Base Pass for broad global color setup</li>
+        <li>a second pass for localized cleanup</li>
+        <li>a third pass for luminance-specific or halo-specific work</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>12. What do the probe, histogram, and polar plot do?</h2>
+      <ul>
+        <li><strong>Probe</strong> samples the local preview pixel and reports luminance, hue, and saturation.</li>
+        <li><strong>Histogram</strong> shows luminance distribution and is especially useful with Range Mask.</li>
+        <li><strong>Polar plot</strong> shows hue angle and saturation distribution in a compact visual form.</li>
+      </ul>
+      <p>These tools help you understand what the image is doing before you commit to stronger edits.</p>
+    </section>
+
+    <section>
+      <h2>13. What are mask views?</h2>
+      <p>Mask views show how the current targeting logic is behaving. In general:</p>
+      <ul>
+        <li>white or bright regions are more included</li>
+        <li>black or dark regions are less included</li>
+        <li>different mask views let you inspect selected hue, luminance gating, or combined influence</li>
+      </ul>
+      <p>If a strong adjustment is surprising, inspect the mask view first.</p>
+    </section>
+
+    <section>
+      <h2>14. Why can preview differ from saved output?</h2>
+      <p>Preview uses downsampled data so the tool stays responsive. Saved output renders from the full-resolution working image.</p>
+      <p>This means tiny local detail differences can exist, but the overall adjustment direction should match as long as preview is current.</p>
+    </section>
+
+    <section>
+      <h2>15. What file formats are supported?</h2>
+      <ul>
+        <li><strong>PNG</strong> export is supported</li>
+        <li><strong>TIFF</strong> import/export is supported when the included browser-side TIFF I/O code and available browser memory allow it</li>
+      </ul>
+      <p>Large TIFF files can be memory-intensive in a browser session.</p>
+    </section>
+
+    <section>
+      <h2>16. What are Adjustment Sets?</h2>
+      <p>Adjustment Sets are JSON files that store the working state of the app. They can preserve pass order, H/S/L values, selected-band settings, Hue Radius and Feather, Range Mask settings, Neutral / Low-Saturation settings, and related workflow state.</p>
+      <p>Starter Presets are canned starting points. Adjustment Sets are your saved session state.</p>
+    </section>
+
+    <section>
+      <h2>17. Common mistakes</h2>
+      <ul>
+        <li>using the tool on linear data</li>
+        <li>making excessive hue shifts where smaller targeted passes would be safer</li>
+        <li>changing Range Mask inside an existing global pass unintentionally</li>
+        <li>ignoring the mask preview before strong edits</li>
+        <li>expecting hue to be meaningful in neutral background</li>
+        <li>forgetting that preview may be stale after changes</li>
+        <li>pushing browser memory too hard with very large TIFFs</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>18. Example workflows</h2>
+      <h3>A. Faint blue reflection nebulosity lift</h3>
+      <ol>
+        <li>Start in Base Pass or create a dedicated reflection pass.</li>
+        <li>Increase <strong>Blue / Reflection Nebula</strong> saturation modestly.</li>
+        <li>Inspect the band mask.</li>
+        <li>Reduce <strong>Hue Radius</strong> if blue stars are moving more than the nebulosity.</li>
+        <li>Use Range Mask if the goal is faint blue structure rather than highlights.</li>
+      </ol>
+
+      <h3>B. Magenta halo cleanup</h3>
+      <ol>
+        <li>Create a new refinement pass.</li>
+        <li>Work mainly in <strong>Magenta / Halo Cleanup</strong>, with <strong>Purple / Violet Cleanup</strong> if needed.</li>
+        <li>Use a narrower <strong>Hue Radius</strong> and enough Feather to keep the transition smooth.</li>
+        <li>Use Range Mask if the artifact is concentrated in brighter star-adjacent regions.</li>
+      </ol>
+
+      <h3>C. Neutral background luminance control with Range Mask</h3>
+      <ol>
+        <li>Use the <strong>Luminance</strong> tab.</li>
+        <li>Work through <strong>Neutral / Low-Saturation</strong> rather than a hue band.</li>
+        <li>Enable Range Mask and target the dim background interval.</li>
+        <li>Use Feather to keep the transition soft into more saturated structures.</li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>
