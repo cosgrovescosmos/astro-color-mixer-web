@@ -1106,7 +1106,11 @@
       .join("");
     elements.sensitivitySelect.value = state.sensitivity;
 
+    const hasActiveRangeMask = !!(adjustment && adjustment.rangeMask && adjustment.rangeMask.enabled);
     if (state.appMode === "standard" && !["adjusted", "original"].includes(state.previewMode)) {
+      state.previewMode = "adjusted";
+    }
+    if (!hasActiveRangeMask && state.previewMode === "range-mask") {
       state.previewMode = "adjusted";
     }
     elements.previewModeSelect.innerHTML = state.appMode === "advanced"
@@ -1115,7 +1119,7 @@
         <option value="original">Original</option>
         <option value="current-mask">Current Mask</option>
         <option value="combined-mask">Combined Mask</option>
-        <option value="range-mask">Range Mask</option>
+        ${hasActiveRangeMask ? '<option value="range-mask">Range Mask</option>' : ""}
       `
       : `
         <option value="adjusted">Adjusted</option>
