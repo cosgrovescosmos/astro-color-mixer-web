@@ -1577,9 +1577,11 @@
         nextRangeMask.preset = "All";
       }
       if (maybeForkRangeMask(nextRangeMask)) {
+        populateSelectors();
         syncRangeMaskControls();
         return;
       }
+      populateSelectors();
       syncRangeMaskControls();
       renderAdjustmentStack();
       updateAnalysis();
